@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lava HelpDesk Form</title>
+
+<style>
+  body {
+    margin: 0;
+    background: linear-gradient(to bottom right, #fce4ec, #f3f3f3);
+    font-family: Arial;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+
+  .form-box {
+    width: 380px;
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    border: 1px solid #f8bbd0;
+    box-shadow: 0 4px 20px rgba(255, 182, 193, 0.6);
+    animation: slideUp 0.7s ease-out;
+  }
+
+  h2 {
+    text-align: center;
+    color: #d81b60;
+    margin-bottom: 20px;
+  }
+
+  label {
+    font-size: 14px;
+    font-weight: bold;
+    color: #444;
+  }
+
+  input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 6px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: 1px solid #ccc;
+    transition: 0.3s;
+  }
+
+  input:focus, textarea:focus {
+    border-color: #d81b60;
+    box-shadow: 0 0 8px rgba(216, 27, 96, 0.5);
+    outline: none;
+  }
+
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #d81b60;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  button:hover {
+    transform: scale(1.05);
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+</style>
+</head>
+
+<body>
+
+<div class="form-box">
+  <h2>Lava HelpDesk Query</h2>
+
+  <form>
+    <label>Your Name</label>
+    <input type="text" required />
+
+    <label>Phone Number</label>
+    <input type="tel" required />
+
+    <label>Your Issue</label>
+    <textarea rows="4" required></textarea>
+
+    <button type="submit">Submit Query</button>
+  </form>
+</div>
+
+</body>
+</html>
