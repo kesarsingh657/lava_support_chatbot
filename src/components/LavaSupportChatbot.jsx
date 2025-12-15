@@ -146,7 +146,7 @@ const LavaSupportChatbot = () => {
                   <div style={styles.helpdeskCard} onClick={() => setCurrentView("helpdesk")}>
                     <div style={styles.helpdeskIcon}>A</div>
                     <div>
-                      <div style={styles.helpdeskName}>Lava College Helpdesk</div>
+                      <div style={styles.helpdeskName}>Lava Helpdesk</div>
                       <div style={styles.helpdeskStatus}>👋 hi</div>
                     </div>
                     <div style={styles.helpdeskTime}>3:14 PM</div>
@@ -277,7 +277,7 @@ const LavaSupportChatbot = () => {
             {currentView === "helpdesk" && (
               <div style={styles.helpdeskView}>
                 <div style={styles.helpdeskHeader}>
-                  <span style={styles.helpdeskHeaderText}>Apna College Helpdesk</span>
+                  <span style={styles.helpdeskHeaderText}>Lava Helpdesk</span>
                 </div>
 
                 <div style={styles.messageBox}>
@@ -419,7 +419,7 @@ const styles = {
     fontWeight: "bold",
     color: "#FFA500",
   },
-  logoCollege: {
+  logolava: {
     fontSize: "16px",
     fontWeight: "bold",
     color: "#FFA500",
