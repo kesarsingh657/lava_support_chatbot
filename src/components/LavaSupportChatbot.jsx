@@ -1,23 +1,35 @@
 import React, { useState, useEffect } from "react";
-import { Search, ThumbsUp, ThumbsDown, ChevronLeft, X, MessageCircle } from "lucide-react";
+import { ThumbsUp, ThumbsDown, ChevronLeft, X, MessageCircle } from "lucide-react";
 
 const BASE_URL = "http://192.168.114.60:8082";
+const TICKET_FORM_URL = "https://your-support-portal.com/submit-ticket"; // Replace with your actual URL
 
 const LavaSupportChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [currentView, setCurrentView] = useState("welcome"); // welcome, categories, questionList, answer, helpdesk, feedback
+  const [currentView, setCurrentView] = useState("welcome");
   const [questions, setQuestions] = useState([]);
   const [answers, setAnswers] = useState([]);
   const [selectedQuestion, setSelectedQuestion] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [viewHistory, setViewHistory] = useState([]);
+
+  const [feedbackType, setFeedbackType] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     message: ""
   });
+  const [ticketData, setTicketData] = useState({
+    fullName: "",
+    email: "",
+    course: "",
+    queryType: "",
+    subject: "",
+    description: ""
+  });
 
-  
+  const [visibleQuestions, setVisibleQuestions] = useState([]);
+
   const fetchQuestions = async () => {
     try {
       const res = await fetch(`${BASE_URL}/api/chatbot/questions`);
@@ -28,12 +40,19 @@ const LavaSupportChatbot = () => {
         createdAt: item[2],
       }));
       setQuestions(formattedData);
+
+      // Animate questions appearance
+      setVisibleQuestions([]);
+      formattedData.forEach((_, index) => {
+        setTimeout(() => {
+          setVisibleQuestions(prev => [...prev, index]);
+        }, index * 150);
+      });
     } catch (error) {
       console.error("Error fetching questions:", error);
     }
   };
 
-  
   const fetchAnswers = async (questionId) => {
     setSelectedQuestion(questionId);
     try {
@@ -48,7 +67,6 @@ const LavaSupportChatbot = () => {
     }
   };
 
-  
   const submitFeedback = async (wasHelpful) => {
     try {
       await fetch(`${BASE_URL}/api/feedback`, {
@@ -62,19 +80,44 @@ const LavaSupportChatbot = () => {
           queryText: null,
         }),
       });
-      setCurrentView("feedback");
+
+
+      setFeedbackType(wasHelpful ? "like" : "dislike");
+      setCurrentView("thankYouFeedback");
+
     } catch (error) {
       console.error("Error submitting feedback:", error);
     }
   };
+  const handleTicketChange = (e) => {
+    setTicketData({ ...ticketData, [e.target.name]: e.target.value });
+  };
 
-  
+  const handleTicketSubmit = () => {
+    if (!ticketData.fullName || !ticketData.email || !ticketData.subject) {
+      alert("Please fill required fields");
+      return;
+    }
+
+    alert("Ticket submitted successfully (demo)");
+    setTicketData({
+      fullName: "",
+      email: "",
+      course: "",
+      queryType: "",
+      subject: "",
+      description: ""
+    });
+    setCurrentView("welcome");
+  };
+
+
+
   const handleFormSubmit = () => {
     if (!formData.name || !formData.email || !formData.message) {
       alert("Please fill in all required fields");
       return;
     }
-    
     alert("Message sent successfully!");
     setFormData({ name: "", email: "", phone: "", message: "" });
     setCurrentView("welcome");
@@ -86,46 +129,47 @@ const LavaSupportChatbot = () => {
     }
   }, [isOpen, currentView]);
 
-  const filteredQuestions = questions.filter(q =>
-    q.question.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
   const handleBack = () => {
-    if (currentView === "answer" || currentView === "helpdesk") {
-      setCurrentView("questionList");
-      setSelectedQuestion(null);
-      setAnswers([]);
-    } else if (currentView === "questionList") {
-      setCurrentView("categories");
-      setSearchQuery("");
-    } else if (currentView === "categories") {
-      setCurrentView("welcome");
-    } else if (currentView === "feedback") {
-      setCurrentView("welcome");
-    }
-  };
+  if (currentView === "answer") {
+    setCurrentView("questionList");
+    setSelectedQuestion(null);
+    setAnswers([]);
+  } 
+  else if (currentView === "submitTicket") {
+    // 👈 FIX: back from submit ticket goes to thank you or welcome
+    setCurrentView("welcome");
+  }
+  else if (currentView === "helpdesk") {
+    setCurrentView("welcome");
+  }
+  else if (currentView === "questionList") {
+    setCurrentView("welcome");
+  }
+  else if (currentView === "thankYouFeedback") {
+    setCurrentView("welcome");
+  }
+};
+
 
   return (
     <>
-      
       <div style={styles.chatIcon} onClick={() => setIsOpen(true)}>
         <MessageCircle size={28} color="white" />
       </div>
 
-      
       {isOpen && (
         <div style={styles.chatbot}>
           {/* HEADER */}
           <div style={styles.header}>
             {currentView !== "welcome" && (
               <button style={styles.backButton} onClick={handleBack}>
-                <ChevronLeft size={20} />
+                <ChevronLeft size={24} />
               </button>
             )}
             <div style={styles.headerContent}>
               <div style={styles.logo}>
-                <span style={styles.logoLava}>Lava</span>
-                
+                <span style={styles.logolava}>LAVA</span>
+
               </div>
             </div>
             <button style={styles.closeBtn} onClick={() => setIsOpen(false)}>
@@ -133,21 +177,24 @@ const LavaSupportChatbot = () => {
             </button>
           </div>
 
-         
-          <div style={styles.body}>
-            
-            {currentView === "welcome" && (
+          {currentView === "welcome" && (
+            <div style={styles.body}>
               <div style={styles.welcomeView}>
-                <h2 style={styles.welcomeTitle}>Hello there!</h2>
-                <p style={styles.welcomeSubtitle}>Welcome to Lava</p>
+                <h1 style={styles.welcomeTitle}>Hello there!</h1>
+                <p style={styles.welcomeSubtitle}>Chat with us</p>
 
                 <div style={styles.chatSection}>
-                  <h3 style={styles.chatTitle}>Chat with us</h3>
-                  <div style={styles.helpdeskCard} onClick={() => setCurrentView("helpdesk")}>
-                    <div style={styles.helpdeskIcon}>A</div>
+                  <p style={styles.chatTitle}>
+                    {/* <span onClick={() => setCurrentView("helpdesk")}>A</span> */}
+                  </p>
+                  <div
+                    style={styles.helpdeskCard}
+                    onClick={() => setCurrentView("helpdesk")}
+                  >
+
                     <div>
                       <div style={styles.helpdeskName}>Lava Helpdesk</div>
-                      <div style={styles.helpdeskStatus}>👋 hi</div>
+
                     </div>
                     <div style={styles.helpdeskTime}>3:14 PM</div>
                   </div>
@@ -155,96 +202,69 @@ const LavaSupportChatbot = () => {
 
                 <div style={styles.faqSection}>
                   <div style={styles.faqHeader}>
-                    <span style={styles.faqTitle}>Frequently Asked Questions</span>
-                    <Search 
-                      size={20} 
-                      style={styles.searchIcon}
-                      onClick={() => setCurrentView("categories")}
-                    />
+                    <p style={styles.faqTitle}>Frequently Asked Questions</p>
                   </div>
-                  <div style={styles.faqCard} onClick={() => setCurrentView("categories")}>
+                  <div
+                    style={styles.faqCard}
+                    onClick={() => {
+                      setCurrentView("questionList");
+                      fetchQuestions();
+                    }}
+                  >
                     <div style={styles.faqIcon}>F</div>
-                    <span style={styles.faqText}>Find answers to common questions</span>
+                    <div style={styles.faqText}>Find answers to common questions</div>
                   </div>
                 </div>
 
                 <p style={styles.footerText}>Welcome to LAVA Support</p>
               </div>
-            )}
+            </div>
+          )}
 
-            
-            {currentView === "categories" && (
-              <div style={styles.categoriesView}>
-                <div style={styles.searchBar}>
-                  <Search size={18} style={styles.searchIconInline} />
-                  <input
-                    type="text"
-                    placeholder="Search for Answers"
-                    style={styles.searchInput}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
-                <h3 style={styles.categoriesTitle}>Categories</h3>
-                <div style={styles.categoryCard} onClick={() => {
-                  setCurrentView("questionList");
-                  fetchQuestions();
-                }}>
-                  <div style={styles.categoryIcon}>F</div>
-                  <span style={styles.categoryText}>Find answers to common questions</span>
-                </div>
-              </div>
-            )}
-
-            
-            {currentView === "questionList" && (
+          {currentView === "questionList" && (
+            <div style={styles.body}>
               <div style={styles.questionListView}>
-                <div style={styles.searchBar}>
-                  <Search size={18} style={styles.searchIconInline} />
-                  <input
-                    type="text"
-                    placeholder="Search for Answers"
-                    style={styles.searchInput}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-
                 <div style={styles.categoryHeader}>
                   <div style={styles.categoryIconSmall}>F</div>
                   <div>
-                    <div style={styles.categoryLabel}>CATEGORY</div>
+                    {/* <div style={styles.categoryLabel}>CATEGORY</div> */}
                     <div style={styles.categoryName}>Find answers to common questions</div>
                   </div>
                 </div>
 
                 <div style={styles.questionsList}>
-                  {filteredQuestions.map(q => (
+                  {questions.map((q, index) => (
                     <div
                       key={q.id}
-                      style={styles.questionItem}
+                      style={{
+                        ...styles.questionItem,
+                        opacity: visibleQuestions.includes(index) ? 1 : 0,
+                        transform: visibleQuestions.includes(index)
+                          ? 'translateY(0)'
+                          : 'translateY(20px)',
+                        transition: 'opacity 0.5s ease, transform 0.5s ease'
+                      }}
                       onClick={() => fetchAnswers(q.id)}
                     >
-                      <div style={styles.questionIcon}>📄</div>
-                      <span style={styles.questionText}>{q.question}</span>
+                      <span style={styles.questionIcon}>📄</span>
+                      <div style={styles.questionText}>{q.question}</div>
                     </div>
                   ))}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* ANSWER VIEW */}
-            {currentView === "answer" && (
+          {/* ANSWER VIEW */}
+          {currentView === "answer" && (
+            <div style={styles.body}>
               <div style={styles.answerView}>
                 <div style={styles.answerHeader}>
-                  <span style={styles.answerCategory}>Find answers to common qu...</span>
+                  <div style={styles.answerCategory}>Find answers to common qu...</div>
                 </div>
-                
-                <h3 style={styles.answerQuestion}>
+                <h2 style={styles.answerQuestion}>
                   {questions.find(q => q.id === selectedQuestion)?.question}
-                </h3>
-
+                </h2>
                 <div style={styles.answerContent}>
                   {answers.map((a, i) => (
                     <div key={i} style={styles.answerSection}>
@@ -252,17 +272,16 @@ const LavaSupportChatbot = () => {
                     </div>
                   ))}
                 </div>
-
                 <div style={styles.feedbackSection}>
                   <p style={styles.feedbackQuestion}>Was this article useful?</p>
                   <div style={styles.feedbackButtons}>
-                    <button 
+                    <button
                       style={styles.feedbackBtn}
                       onClick={() => submitFeedback(true)}
                     >
                       <ThumbsUp size={20} />
                     </button>
-                    <button 
+                    <button
                       style={styles.feedbackBtn}
                       onClick={() => submitFeedback(false)}
                     >
@@ -271,72 +290,72 @@ const LavaSupportChatbot = () => {
                   </div>
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* HELPDESK VIEW */}
-            {currentView === "helpdesk" && (
+          {/* HELPDESK VIEW */}
+          {currentView === "helpdesk" && (
+            <div style={styles.body}>
               <div style={styles.helpdeskView}>
                 <div style={styles.helpdeskHeader}>
-                  <span style={styles.helpdeskHeaderText}>Lava Helpdesk</span>
-                </div>
-
-                <div style={styles.messageBox}>
-                  <p style={styles.messageText}>
-                    Hi! How can we help you today? Please fill out the form below and we'll get back to you shortly.
-                  </p>
+                  <h3 style={styles.helpdeskHeaderText}>Submit Support Ticket</h3>
                 </div>
 
                 <div style={styles.contactForm}>
                   <input
-                    type="text"
-                    placeholder="Your Name *"
                     style={styles.input}
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    name="fullName"
+                    placeholder="Full Name *"
+                    value={ticketData.fullName}
+                    onChange={handleTicketChange}
                   />
-                  <input
-                    type="email"
-                    placeholder="Your Email *"
-                    style={styles.input}
-                    value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  />
-                  <input
-                    type="tel"
-                    placeholder="Phone Number"
-                    style={styles.input}
-                    value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                  />
-                  <textarea
-                    placeholder="Your Message *"
-                    style={styles.textarea}
-                    value={formData.message}
-                    onChange={(e) => setFormData({...formData, message: e.target.value})}
-                  />
-                  <button style={styles.submitBtn} onClick={handleFormSubmit}>
-                    Send Message
-                  </button>
-                </div>
-              </div>
-            )}
 
-            
-            {currentView === "feedback" && (
-              <div style={styles.feedbackView}>
-                <div style={styles.feedbackSuccess}>
-                  <div style={styles.checkmark}>✓</div>
-                  <h3 style={styles.thankYouText}>Thank you for your Feedback!</h3>
-                  <p style={styles.feedbackMessage}>
-                    We appreciate your input and will use it to improve our service.
-                  </p>
-                  <button 
-                    style={styles.messageUsBtn}
-                    onClick={() => setCurrentView("helpdesk")}
-                  >
-                    💬 Message Us
+                  <input
+                    style={styles.input}
+                    name="email"
+                    type="email"
+                    placeholder="Registered Email *"
+                    value={ticketData.email}
+                    onChange={handleTicketChange}
+                  />
+
+                  <input
+                    style={styles.input}
+                    name="course"
+                    placeholder="Course"
+                    value={ticketData.course}
+                    onChange={handleTicketChange}
+                  />
+
+                  <input
+                    style={styles.input}
+                    name="queryType"
+                    placeholder="Query Type"
+                    value={ticketData.queryType}
+                    onChange={handleTicketChange}
+                  />
+
+                  <input
+                    style={styles.input}
+                    name="subject"
+                    placeholder="Your Query *"
+                    value={ticketData.subject}
+                    onChange={handleTicketChange}
+                  />
+
+                  <textarea
+                    style={styles.textarea}
+                    name="description"
+                    placeholder="Describe your issue"
+                    value={ticketData.description}
+                    onChange={handleTicketChange}
+                  />
+
+                  <button style={styles.submitBtn} onClick={handleTicketSubmit}>
+                    Submit Ticket
                   </button>
-                  <button 
+
+                  <button
                     style={styles.backToHomeBtn}
                     onClick={() => setCurrentView("welcome")}
                   >
@@ -344,14 +363,177 @@ const LavaSupportChatbot = () => {
                   </button>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          
+          )}
+          {/* SUBMIT TICKET VIEW */}
+          {currentView === "submitTicket" && (
+            <div style={styles.body}>
+              <div style={styles.helpdeskView}>
+                <div style={styles.helpdeskHeader}>
+                  <h3 style={styles.helpdeskHeaderText}>Submit Support Ticket</h3>
+                </div>
+
+                <div style={styles.contactForm}>
+                  <input
+                    style={styles.input}
+                    name="fullName"
+                    placeholder="Full Name *"
+                    value={ticketData.fullName}
+                    onChange={handleTicketChange}
+                  />
+
+                  <input
+                    style={styles.input}
+                    name="email"
+                    type="email"
+                    placeholder="Registered Email *"
+                    value={ticketData.email}
+                    onChange={handleTicketChange}
+                  />
+
+                  <input
+                    style={styles.input}
+                    name="course"
+                    placeholder="Course"
+                    value={ticketData.course}
+                    onChange={handleTicketChange}
+                  />
+
+                  <input
+                    style={styles.input}
+                    name="queryType"
+                    placeholder="Query Type"
+                    value={ticketData.queryType}
+                    onChange={handleTicketChange}
+                  />
+
+                  <input
+                    style={styles.input}
+                    name="subject"
+                    placeholder="Your Query *"
+                    value={ticketData.subject}
+                    onChange={handleTicketChange}
+                  />
+
+                  <textarea
+                    style={styles.textarea}
+                    name="description"
+                    placeholder="Describe your issue"
+                    value={ticketData.description}
+                    onChange={handleTicketChange}
+                  />
+
+                  <button style={styles.submitBtn} onClick={handleTicketSubmit}>
+                    Submit Ticket
+                  </button>
+
+                  <button
+                    style={styles.backToHomeBtn}
+                    onClick={() => setCurrentView("welcome")}
+                  >
+                    Back to Home
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+
+          {/* THANK YOU FEEDBACK VIEW */}
+          {currentView === "thankYouFeedback" && (
+            <div style={styles.body}>
+              <div style={styles.feedbackView}>
+                <div style={styles.feedbackSuccess}>
+
+                  {/* 👍 LIKE CASE */}
+                  {feedbackType === "like" && (
+                    <>
+                      <div style={styles.checkmark}>✓</div>
+                      <h3 style={styles.thankYouText}>
+                        Thank you for your Feedback!
+                      </h3>
+                      <p style={styles.feedbackMessage}>
+                        We’re glad this information was helpful 😊
+                      </p>
+
+                      <button
+                        style={styles.backToHomeBtn}
+                        onClick={() => setCurrentView("welcome")}
+                      >
+                        Back to Home
+                      </button>
+                    </>
+                  )}
+
+                  {/* 👎 DISLIKE CASE */}
+                  {feedbackType === "dislike" && (
+                    <>
+                      <div style={styles.ticketIcon}>✍️</div>
+                      <h3 style={styles.thankYouText}>
+                        Sorry this didn’t help
+                      </h3>
+                      <p style={styles.feedbackMessage}>
+                        Please submit your query so we can assist you better.
+                      </p>
+
+                      <button
+                        style={styles.messageUsBtn}
+                        onClick={() => setCurrentView("submitTicket")}
+                      >
+                        Submit Your Query
+                      </button>
+
+                      <button
+                        style={styles.backToHomeBtn}
+                        onClick={() => setCurrentView("welcome")}
+                      >
+                        Back to Home
+                      </button>
+                    </>
+                  )}
+
+                </div>
+              </div>
+            </div>
+          )}
+
+
+          {/* TICKET MESSAGE VIEW */}
+          {currentView === "ticketMessage" && (
+            <div style={styles.body}>
+              <div style={styles.feedbackView}>
+                <div style={styles.feedbackSuccess}>
+                  <div style={styles.ticketIcon}>🎫</div>
+                  <h3 style={styles.thankYouText}>Need More Help?</h3>
+                  <p style={styles.feedbackMessage}>
+                    For detailed assistance, please submit a support ticket through our help portal.
+                  </p>
+                  <a
+                    href={TICKET_FORM_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={styles.ticketLink}
+                  >
+                    <button style={styles.messageUsBtn}>
+                      🎫 Submit Support Ticket
+                    </button>
+                  </a>
+                  <button
+                    style={styles.backToHomeBtn}
+                    onClick={() => setCurrentView("welcome")}
+                  >
+                    Back to Home
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
   );
 };
-
 
 const styles = {
   chatIcon: {
@@ -367,7 +549,7 @@ const styles = {
     justifyContent: "center",
     cursor: "pointer",
     zIndex: 9999,
-    boxShadow: "0 8px 24px rgba(236, 141, 240, 0.4)",
+    boxShadow: "0 8px 24px rgba(233, 232, 212, 0.25)",
     transition: "transform 0.2s",
   },
   chatbot: {
@@ -414,10 +596,10 @@ const styles = {
     alignItems: "center",
     lineHeight: "1",
   },
-  logoApna: {
+  logoLava: {
     fontSize: "16px",
     fontWeight: "bold",
-    color: "#FFA500",
+    color: "#e40f3dff",
   },
   logolava: {
     fontSize: "16px",
@@ -523,10 +705,6 @@ const styles = {
     fontWeight: "600",
     color: "#333",
   },
-  searchIcon: {
-    color: "#666",
-    cursor: "pointer",
-  },
   faqCard: {
     display: "flex",
     alignItems: "center",
@@ -541,7 +719,7 @@ const styles = {
     width: "36px",
     height: "36px",
     borderRadius: "50%",
-    background: "#FFA500",
+    background: "#eea719ff",
     color: "white",
     display: "flex",
     alignItems: "center",
@@ -559,64 +737,6 @@ const styles = {
     fontSize: "12px",
     color: "#666",
     marginTop: "24px",
-  },
-  categoriesView: {
-    padding: "20px",
-    minHeight: "100%",
-  },
-  searchBar: {
-    display: "flex",
-    alignItems: "center",
-    background: "white",
-    border: "1px solid #e0e0e0",
-    borderRadius: "8px",
-    padding: "10px 12px",
-    marginBottom: "24px",
-  },
-  searchIconInline: {
-    color: "#999",
-    marginRight: "8px",
-  },
-  searchInput: {
-    border: "none",
-    outline: "none",
-    flex: 1,
-    fontSize: "14px",
-    color: "#333",
-  },
-  categoriesTitle: {
-    fontSize: "16px",
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: "16px",
-  },
-  categoryCard: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px",
-    padding: "16px",
-    background: "white",
-    borderRadius: "12px",
-    cursor: "pointer",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-    transition: "transform 0.2s",
-  },
-  categoryIcon: {
-    width: "48px",
-    height: "48px",
-    borderRadius: "50%",
-    background: "#FFA500",
-    color: "white",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontSize: "20px",
-    fontWeight: "bold",
-  },
-  categoryText: {
-    fontSize: "14px",
-    color: "#333",
-    fontWeight: "500",
   },
   questionListView: {
     padding: "20px",
@@ -811,7 +931,19 @@ const styles = {
     width: "60px",
     height: "60px",
     borderRadius: "50%",
-    background: "#4CAF50",
+    background: "#f5a613ff",
+    color: "white",
+    fontSize: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 auto 20px",
+  },
+  ticketIcon: {
+    width: "60px",
+    height: "60px",
+    borderRadius: "50%",
+    background: "#667eea",
     color: "white",
     fontSize: "32px",
     display: "flex",
@@ -832,7 +964,7 @@ const styles = {
     marginBottom: "24px",
   },
   messageUsBtn: {
-    background: "#4a5dc9",
+    background: "#4a5470ff",
     color: "white",
     border: "none",
     borderRadius: "8px",
@@ -845,13 +977,17 @@ const styles = {
   },
   backToHomeBtn: {
     background: "transparent",
-    color: "#4a5dc9",
-    border: "2px solid #4a5dc9",
+    color: "#a1aadbff",
+    border: "2px solid #dfe1ecff",
     borderRadius: "8px",
     padding: "12px 24px",
     fontSize: "14px",
     fontWeight: "600",
     cursor: "pointer",
+    width: "100%",
+  },
+  ticketLink: {
+    textDecoration: "none",
     width: "100%",
   },
 };
