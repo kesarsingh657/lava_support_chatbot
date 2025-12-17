@@ -1,39 +1,36 @@
-import React, { useState, useEffect } from "react";
-import { ThumbsUp, ThumbsDown, ChevronLeft, X, MessageCircle } from "lucide-react";
+import React, { useState, useEffect } from "react"; /* react hooks */
+import { ThumbsUp, ThumbsDown, ChevronLeft, X, MessageCircle } from "lucide-react";    /* icons import */
 
-const BASE_URL = "http://192.168.114.60:8082";
+const BASE_URL = "http://192.168.114.60:8082"; /* backend url */
 const TICKET_FORM_URL = "https://your-support-portal.com/submit-ticket";
-
-const LavaSupportChatbot = () => {
+/* main component */
+const LavaSupportChatbot = () => {  /* chatbot open/close */
   const [isOpen, setIsOpen] = useState(false);
-  const [currentView, setCurrentView] = useState("welcome");
-  const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState([]);
-  const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [currentView, setCurrentView] = useState("welcome"); /* screen viisle welcome,questiosn,answer .... */
+  const [questions, setQuestions] = useState([]); /* faq */
+  const [answers, setAnswers] = useState([]);/* answers */
+  const [selectedQuestion, setSelectedQuestion] = useState(null);/* selected quetsion id  */
 
-  const [feedbackType, setFeedbackType] = useState(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: ""
-  });
+  const [feedbackType, setFeedbackType] = useState(null); /* feedback /ticket */
+  const [errors, setErrors] = useState({}); /* validatiosn */
+  const [generatedTicketNo, setGeneratedTicketNo] = useState(null);
   const [ticketData, setTicketData] = useState({
     fullName: "",
     email: "",
-    course: "",
-    queryType: "",
-    subject: "",
+    phone: "",
     description: ""
   });
 
-  const [visibleQuestions, setVisibleQuestions] = useState([]);
+  const [visibleQuestions, setVisibleQuestions] = useState([]); /* animations */
 
-  const fetchQuestions = async () => {
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); /* email validatiosn */
+  const validatePhone = (phone) => /^[6-9]\d{9}$/.test(phone); /* phone number validatiosn */
+
+  const fetchQuestions = async () => { /* fetch questions */
     try {
       const res = await fetch(`${BASE_URL}/api/chatbot/questions`);
       const data = await res.json();
-      const formattedData = data.map(item => ({
+      const formattedData = data.map(item => ({ /*  backend data in array --> object */
         id: item[0],
         question: item[1],
         createdAt: item[2],
@@ -41,7 +38,7 @@ const LavaSupportChatbot = () => {
       setQuestions(formattedData);
 
       setVisibleQuestions([]);
-      formattedData.forEach((_, index) => {
+      formattedData.forEach((_, index) => { /* animation oen by one */
         setTimeout(() => {
           setVisibleQuestions(prev => [...prev, index]);
         }, index * 150);
@@ -51,21 +48,21 @@ const LavaSupportChatbot = () => {
     }
   };
 
-  const fetchAnswers = async (questionId) => {
+  const fetchAnswers = async (questionId) => { /*  fetch answers for a question */
     setSelectedQuestion(questionId);
-    try {
+    try { /* backend -->answers */
       const res = await fetch(
         `${BASE_URL}/api/chatbot/questions/${questionId}/responses`
       );
       const data = await res.json();
-      setAnswers(data);
+      setAnswers(data);  /* answers */
       setCurrentView("answer");
     } catch (error) {
       console.error("Error fetching answers:", error);
     }
   };
 
-  const submitFeedback = async (wasHelpful) => {
+  const submitFeedback = async (wasHelpful) => {  /* feedbacke */
     try {
       await fetch(`${BASE_URL}/api/feedback`, {
         method: "POST",
@@ -90,35 +87,90 @@ const LavaSupportChatbot = () => {
     }
   };
 
-  const handleTicketChange = (e) => {
-    setTicketData({ ...ticketData, [e.target.name]: e.target.value });
-  };
+  const handleTicketChange = (e) => { /* form input */
+    const { name, value } = e.target;
+    let newErrors = { ...errors };
 
-  const handleTicketSubmit = () => {
-    if (!ticketData.fullName || !ticketData.email || !ticketData.description) {
-      alert("Please fill required fields");
-      return;
+    if (name === "email") { /* email validation */
+      if (!value) newErrors.email = "Email is required";
+      else if (!validateEmail(value)) newErrors.email = "Enter a valid email";
+      else delete newErrors.email;
     }
 
-    alert("Ticket submitted successfully (demo)");
-    setTicketData({
-      fullName: "",
-      email: "",
-      course: "",
-      queryType: "",
-      subject: "",
-      description: ""
-    });
-    setCurrentView("welcome");
+    if (name === "phone") { /* phone validatiosn */
+      if (value && !validatePhone(value))
+        newErrors.phone = "Enter valid 10-digit phone number";
+      else delete newErrors.phone;
+    }
+
+    if (name === "fullName") { /* full name validation */
+      if (!value.trim()) newErrors.fullName = "Full name is required";
+      else delete newErrors.fullName;
+    }
+
+    if (name === "description") { /* description validation */
+      if (!value.trim()) newErrors.description = "Description is required";
+      else if (value.length > 250)
+        newErrors.description = "Max 250 characters allowed";
+      else delete newErrors.description;
+    }
+
+    setErrors(newErrors);
+    setTicketData({ ...ticketData, [name]: value });
   };
 
-  useEffect(() => {
+  const handleTicketSubmit = async () => { /* submition of ticket */
+    let newErrors = {};
+
+    if (!ticketData.fullName.trim())  /* --->validation before submit */
+      newErrors.fullName = "Full name is required";
+
+    if (!ticketData.email)
+      newErrors.email = "Email is required";
+    else if (!validateEmail(ticketData.email))
+      newErrors.email = "Enter a valid email";
+
+    if (ticketData.phone && !validatePhone(ticketData.phone))
+      newErrors.phone = "Enter valid 10-digit phone number";
+
+    if (!ticketData.description.trim())
+      newErrors.description = "Description is required";
+    else if (ticketData.description.length > 250)
+      newErrors.description = "Max 250 characters allowed";
+
+    setErrors(newErrors);     /* -->stop submisiion if fails */
+    if (Object.keys(newErrors).length > 0) return;
+
+    try {
+      const res = await fetch(`${BASE_URL}/api/tickets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ticketData)
+      });
+
+      const data = await res.json();
+      setGeneratedTicketNo(data.ticketNo || "TKT-" + Date.now());
+      setCurrentView("ticketSuccess");
+      setTicketData({
+        fullName: "",
+        email: "",
+        phone: "",
+        description: ""
+      });
+      setErrors({});
+    } catch (error) {
+      console.error("Ticket submit error:", error);
+      alert("Failed to submit ticket. Please try again.");
+    }
+  };
+
+  useEffect(() => {   /* auto fetch questiosn  */
     if (isOpen && currentView === "questionList") {
       fetchQuestions();
     }
   }, [isOpen, currentView]);
 
-  const handleBack = () => {
+  const handleBack = () => { /* backbutton logic */
     if (currentView === "answer") {
       setCurrentView("questionList");
       setSelectedQuestion(null);
@@ -138,7 +190,7 @@ const LavaSupportChatbot = () => {
     }
   };
 
-  return (
+  return ( /* UI */
     <>
       <div style={styles.chatIcon} onClick={() => setIsOpen(true)}>
         <MessageCircle size={28} color="white" />
@@ -176,14 +228,7 @@ const LavaSupportChatbot = () => {
                     <div>
                       <div style={styles.helpdeskName}>Lava Helpdesk</div>
                     </div>
-                    <div style={styles.helpdeskTime}> {/* timme */}
-                      {new Date().toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: true
-                      })}
-                    </div>
-
+                    <div style={styles.helpdeskTime}>3:14 PM</div>
                   </div>
                 </div>
 
@@ -259,17 +304,21 @@ const LavaSupportChatbot = () => {
                 </div>
                 <div style={styles.feedbackSection}>
                   <p style={styles.feedbackQuestion}>Was this article useful?</p>
-
                   <div style={styles.feedbackButtons}>
-                    <button style={styles.feedbackBtn} onClick={() => submitFeedback(true)}>
+                    <button
+                      style={styles.feedbackBtn}
+                      onClick={() => submitFeedback(true)}
+                    >
                       <ThumbsUp size={20} />
                     </button>
-                    <button style={styles.feedbackBtn} onClick={() => submitFeedback(false)}>
+                    <button
+                      style={styles.feedbackBtn}
+                      onClick={() => submitFeedback(false)}
+                    >
                       <ThumbsDown size={20} />
                     </button>
                   </div>
                 </div>
-
               </div>
             </div>
           )}
@@ -283,37 +332,41 @@ const LavaSupportChatbot = () => {
 
                 <div style={styles.contactForm}>
                   <input
-                    style={styles.input}
+                    style={errors.fullName ? styles.inputError : styles.input}
                     name="fullName"
                     placeholder="Full Name *"
                     value={ticketData.fullName}
                     onChange={handleTicketChange}
                   />
+                  {errors.fullName && <div style={styles.errorText}>{errors.fullName}</div>}
 
                   <input
-                    style={styles.input}
+                    style={errors.email ? styles.inputError : styles.input}
                     name="email"
                     type="email"
                     placeholder="Registered Email *"
                     value={ticketData.email}
                     onChange={handleTicketChange}
                   />
+                  {errors.email && <div style={styles.errorText}>{errors.email}</div>}
 
                   <input
-                    style={styles.input}
+                    style={errors.phone ? styles.inputError : styles.input}
                     name="phone"
                     placeholder="Phone Number"
                     value={ticketData.phone}
                     onChange={handleTicketChange}
                   />
+                  {errors.phone && <div style={styles.errorText}>{errors.phone}</div>}
 
                   <textarea
-                    style={styles.textarea}
+                    style={errors.description ? styles.textareaError : styles.textarea}
                     name="description"
-                    placeholder="Describe your issue"
+                    placeholder="Describe your issue *"
                     value={ticketData.description}
                     onChange={handleTicketChange}
                   />
+                  {errors.description && <div style={styles.errorText}>{errors.description}</div>}
 
                   <button style={styles.submitBtn} onClick={handleTicketSubmit}>
                     Submit Ticket
@@ -364,37 +417,41 @@ const LavaSupportChatbot = () => {
 
                       <div style={styles.contactForm}>
                         <input
-                          style={styles.input}
+                          style={errors.fullName ? styles.inputError : styles.input}
                           name="fullName"
                           placeholder="Full Name *"
                           value={ticketData.fullName}
                           onChange={handleTicketChange}
                         />
+                        {errors.fullName && <div style={styles.errorText}>{errors.fullName}</div>}
 
                         <input
-                          style={styles.input}
+                          style={errors.email ? styles.inputError : styles.input}
                           name="email"
                           type="email"
                           placeholder="Registered Email *"
                           value={ticketData.email}
                           onChange={handleTicketChange}
                         />
+                        {errors.email && <div style={styles.errorText}>{errors.email}</div>}
 
                         <input
-                          style={styles.input}
+                          style={errors.phone ? styles.inputError : styles.input}
                           name="phone"
                           placeholder="Phone Number"
                           value={ticketData.phone}
                           onChange={handleTicketChange}
                         />
+                        {errors.phone && <div style={styles.errorText}>{errors.phone}</div>}
 
                         <textarea
-                          style={styles.textarea}
+                          style={errors.description ? styles.textareaError : styles.textarea}
                           name="description"
-                          placeholder="Describe your issue"
+                          placeholder="Describe your issue *"
                           value={ticketData.description}
                           onChange={handleTicketChange}
                         />
+                        {errors.description && <div style={styles.errorText}>{errors.description}</div>}
 
                         <button style={styles.submitBtn} onClick={handleTicketSubmit}>
                           Submit Ticket
@@ -413,13 +470,39 @@ const LavaSupportChatbot = () => {
               </div>
             </div>
           )}
+          {currentView === "ticketSuccess" && (
+            <div style={styles.body}>
+              <div style={styles.feedbackView}>
+                <div style={styles.feedbackSuccess}>
+                  <div style={styles.checkmark}>✓</div>
+                  <h3 style={styles.thankYouText}>
+                    Ticket Submitted Successfully!
+                  </h3>
+                  <p style={styles.feedbackMessage}>
+                    Your ticket number is: <strong>#{generatedTicketNo}</strong>
+                  </p>
+                  <p style={styles.feedbackMessage}>
+                    We'll get back to you soon. Thank you for contacting us!
+                  </p>
+
+                  <button
+                    style={styles.backToHomeBtn}
+                    onClick={() => setCurrentView("welcome")}
+                  >
+                    Back to Home
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
   );
 };
+ /* CSS STYLING   */
 
-const styles = {
+const styles = { 
   chatIcon: {
     position: "fixed",
     bottom: "24px",
@@ -459,12 +542,7 @@ const styles = {
     alignItems: "center",
     justifyContent: "space-between",
     minHeight: "70px",
-
-    position: "sticky",
-    top: 0,
-    zIndex: 1000,
   },
-
   backButton: {
     background: "transparent",
     border: "none",
@@ -688,33 +766,21 @@ const styles = {
     lineHeight: "1.6",
   },
   feedbackSection: {
-  position: "sticky",
-  bottom: "0",
-  background: "white",
-  paddingTop: "16px",   
-  paddingBottom: "16px",
-  borderTop: "1px solid #e0e0e0",
-  textAlign: "center",
-  zIndex: 999,
-},
-
-
+    borderTop: "1px solid #e0e0e0",
+    paddingTop: "20px",
+    textAlign: "center",
+  },
   feedbackQuestion: {
     fontSize: "14px",
     color: "#333",
-    marginBottom: "10px",
-    marginTop: "8px",   
+    marginBottom: "12px",
     fontWeight: "500",
   },
-
-
   feedbackButtons: {
     display: "flex",
     justifyContent: "center",
     gap: "16px",
-    marginTop: "8px",   
   },
-
   feedbackBtn: {
     background: "white",
     border: "2px solid #e0e0e0",
@@ -753,6 +819,14 @@ const styles = {
     outline: "none",
     transition: "border-color 0.2s",
   },
+  inputError: {
+    padding: "10px",
+    border: "2px solid #f44336",
+    borderRadius: "8px",
+    fontSize: "14px",
+    outline: "none",
+    transition: "border-color 0.2s",
+  },
   textarea: {
     padding: "10px",
     border: "1px solid #e0e0e0",
@@ -762,6 +836,22 @@ const styles = {
     minHeight: "70px",
     resize: "vertical",
     fontFamily: "inherit",
+  },
+  textareaError: {
+    padding: "10px",
+    border: "2px solid #f44336",
+    borderRadius: "8px",
+    fontSize: "14px",
+    outline: "none",
+    minHeight: "70px",
+    resize: "vertical",
+    fontFamily: "inherit",
+  },
+  errorText: {
+    color: "#f44336",
+    fontSize: "12px",
+    marginTop: "-8px",
+    marginBottom: "4px",
   },
   submitBtn: {
     background: "linear-gradient(135deg, #2196F3 0%, #1976D2 100%)",
