@@ -478,12 +478,12 @@ const LavaSupportChatbot = () => {  /* chatbot open/close */
                   <h3 style={styles.thankYouText}>
                     Ticket Submitted Successfully!
                   </h3>
-                  <p style={styles.feedbackMessage}>
+                  {/* <p style={styles.feedbackMessage}>
                     Your ticket number is: <strong>#{generatedTicketNo}</strong>
                   </p>
                   <p style={styles.feedbackMessage}>
                     We'll get back to you soon. Thank you for contacting us!
-                  </p>
+                  </p> */}
 
                   <button
                     style={styles.backToHomeBtn}
