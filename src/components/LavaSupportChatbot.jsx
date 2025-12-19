@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { ThumbsUp, ThumbsDown, ChevronLeft, X, MessageCircle } from "lucide-react";
 
 const BASE_URL = "http://192.168.114.60:8082";
+const OTHER_QUESTION_ID = 0;
+
 
 
 const CATEGORIES = {
@@ -32,7 +34,13 @@ const CATEGORIES = {
     name: "Settings & Features",
 
     keywords: ["talkback", "call recording", "fingerprint", "applock", "anti-theft", "screen cast", "assistant", "edge light"]
-  }
+  },
+  // other: {
+  //   id: "other",
+  //   name: "Other",
+
+  //   keywords: ["other"]
+  // }
 };
 
 const LavaSupportChatbot = () => {
@@ -53,10 +61,11 @@ const LavaSupportChatbot = () => {
     queryText: ""
   });
   const [visibleQuestions, setVisibleQuestions] = useState([]);
-  const OTHER_QUESTION_ID = 0;
+  const [ticketNo, setTicketNo] = useState();
+
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  const validatePhone = (phone) => /^[6-9]\d{9}$/.test(phone);
+  const validatePhone = (phone) => /^\d{10}$/.test(phone);
 
   const categorizeQuestion = (question) => {
     const questionLower = question.toLowerCase();
@@ -215,6 +224,7 @@ const LavaSupportChatbot = () => {
       });
 
       const data = await res.json();
+      setTicketNo(data.ticket);
       setGeneratedTicketNo(data.ticketNo || "TKT-" + Date.now());
       setCurrentView("ticketSuccess");
       setTicketData({
@@ -321,12 +331,12 @@ const LavaSupportChatbot = () => {
             <div style={styles.body}>
               <div style={styles.welcomeView}>
                 <h1 style={styles.welcomeTitle}>Hello there!</h1>
-                <p style={styles.welcomeSubtitle}>Chat with us</p>
+                <p style={styles.welcomeSubtitle}></p>
 
                 <div style={styles.faqSection}>
-                  <div style={styles.faqHeader}>
-                    <p style={styles.faqTitle}>Frequently Asked Questions</p>
-                  </div>
+                  {/* <div style={styles.faqHeader}>
+                    <p style={styles.faqTitle}>How can i help you ?</p>
+                  </div> */}
                   <div
                     style={styles.faqCard}
                     onClick={() => {
@@ -334,8 +344,8 @@ const LavaSupportChatbot = () => {
                       fetchQuestions();
                     }}
                   >
-                    <div style={styles.faqIcon}>F</div>
-                    <div style={styles.faqText}>Find answers to common questions</div>
+                    <div style={styles.faqIcon}>?</div>
+                    <div style={styles.faqText}>How can i help you</div>
                   </div>
                 </div>
 
@@ -350,7 +360,7 @@ const LavaSupportChatbot = () => {
             <div style={styles.body}>
               <div style={styles.categoryListView}>
                 <div style={styles.faqHeaderSection}>
-                  <h2 style={styles.faqMainTitle}>Frequently asked questions</h2>
+                  <h2 style={styles.faqMainTitle}>How can i help you ?</h2>
                   <div style={styles.searchIconContainer}>🔍</div>
                 </div>
                 <h2 style={styles.categoryListTitle}>Select a Category</h2>
@@ -588,9 +598,11 @@ const LavaSupportChatbot = () => {
                 <div style={styles.feedbackSuccess}>
                   <div style={styles.checkmark}>✓</div>
                   <h3 style={styles.thankYouText}>
-                    Ticket Submitted Successfully!
+                    Ticket No : {ticketNo}
                   </h3>
-
+                  <span>
+                    Our Care agent will connect with you shortly
+                  </span>
                   <button
                     style={styles.backToHomeBtn}
                     onClick={() => {
@@ -1000,6 +1012,7 @@ const styles = {
     fontWeight: "600",
     cursor: "pointer",
     width: "100%",
+    marginTop: "10px"
   },
   faqHeaderSection: {
     display: "flex",
